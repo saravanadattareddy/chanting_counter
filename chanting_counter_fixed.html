@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chanting Counter</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: #1a0a00;
+    background-image: radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 70%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    padding: 24px 14px 40px;
+    color: #f5e6c8;
+  }
+
+  .header { text-align: center; margin-bottom: 20px; }
+  .om-symbol {
+    font-size: 3rem; line-height: 1; margin-bottom: 6px;
+    animation: glow 3s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%,100% { filter: drop-shadow(0 0 8px #ff8c00aa); }
+    50%      { filter: drop-shadow(0 0 22px #ffaa00cc); }
+  }
+  h1 {
+    font-family: 'Cinzel', serif; font-size: 1.5rem;
+    letter-spacing: 0.18em; color: #ffcc66;
+    text-shadow: 0 0 20px #ff8c0066;
+  }
+  .subtitle { font-size: 0.68rem; color: #a07840; letter-spacing: 0.1em; margin-top: 4px; }
+
+  /* ── Setup box ── */
+  .setup-box {
+    background: #2a1200; border: 1px solid #5a3010;
+    border-radius: 10px; padding: 14px 16px;
+    width: 100%; max-width: 580px; margin-bottom: 16px;
+  }
+  .setup-row {
+    display: flex; gap: 8px; align-items: center;
+    flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .setup-row:last-child { margin-bottom: 0; }
+  .setup-label {
+    font-size: 0.68rem; color: #a07840;
+    letter-spacing: 0.08em; min-width: 64px;
+  }
+  .setup-input {
+    flex: 1; min-width: 150px;
+    background: #1a0a00; border: 1px solid #5a3010;
+    border-radius: 6px; color: #ffcc66;
+    font-family: 'Cinzel', serif; font-size: 0.88rem;
+    padding: 8px 12px; outline: none; letter-spacing: 0.05em;
+  }
+  .setup-input:focus { border-color: #ff8c00; }
+  .btn-set {
+    background: #5a2800; color: #ffcc66;
+    border: 1px solid #8a4010; border-radius: 6px;
+    padding: 8px 16px; font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.08em;
+    cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  }
+  .btn-set:hover { background: #7a3800; }
+
+  /* ── Heard box ── */
+  .heard-box {
+    background: #1a0a00; border: 1px dashed #5a3010;
+    border-radius: 6px; padding: 8px 12px;
+    font-size: 0.75rem; color: #a07840;
+    letter-spacing: 0.04em; min-height: 34px;
+    width: 100%; max-width: 580px; margin-bottom: 12px;
+    word-break: break-all;
+  }
+  .heard-box span { color: #ffcc66; }
+
+  /* ── Big counter ── */
+  .counter-card {
+    background: #2a1200; border: 2px solid #5a3010;
+    border-radius: 14px; width: 100%; max-width: 580px;
+    padding: 20px 20px 16px; margin-bottom: 16px;
+  }
+  .big-count {
+    text-align: center; font-family: 'Cinzel', serif;
+    font-size: 5.5rem; font-weight: 700; color: #ffcc66;
+    line-height: 1; text-shadow: 0 0 30px #ff8c0088;
+    transition: transform 0.15s, color 0.15s;
+  }
+  .big-count.pop { transform: scale(1.2); color: #fff; text-shadow: 0 0 40px #ffaa00; }
+  .count-label {
+    text-align: center; font-size: 0.68rem; color: #a07840;
+    letter-spacing: 0.18em; text-transform: uppercase; margin-top: 5px;
+  }
+
+  /* Progress */
+  .target-row {
+    display: flex; align-items: center;
+    gap: 10px; margin-top: 14px;
+  }
+  .target-lbl { font-size: 0.67rem; color: #a07840; white-space: nowrap; }
+  .target-num {
+    width: 58px; background: #1a0a00;
+    border: 1px solid #5a3010; border-radius: 4px;
+    color: #ffcc66; font-family: 'DM Mono', monospace;
+    font-size: 0.74rem; padding: 3px 7px;
+    outline: none; text-align: center;
+  }
+  .target-num:focus { border-color: #ff8c00; }
+  .prog-track {
+    flex: 1; height: 8px; background: #1a0a00;
+    border-radius: 4px; overflow: hidden; border: 1px solid #3a1800;
+  }
+  .prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b4000, #ff8c00);
+    border-radius: 4px; width: 0%; transition: width 0.4s ease;
+  }
+  .prog-pct { font-size: 0.67rem; color: #a07840; min-width: 32px; text-align: right; }
+
+  /* Wave */
+  .wave-row {
+    display: flex; align-items: flex-end;
+    justify-content: center; gap: 4px;
+    height: 26px; margin-top: 14px; position: relative;
+  }
+  .wbar {
+    width: 5px; background: #3a1800;
+    border-radius: 3px; height: 4px;
+  }
+  .wbar.on { animation: wv 0.5s ease-in-out infinite; background: #ff8c00; }
+  .wbar:nth-child(2).on { animation-delay:.08s; }
+  .wbar:nth-child(3).on { animation-delay:.16s; }
+  .wbar:nth-child(4).on { animation-delay:.24s; }
+  .wbar:nth-child(5).on { animation-delay:.12s; }
+  .wbar:nth-child(6).on { animation-delay:.20s; }
+  .wbar:nth-child(7).on { animation-delay:.04s; }
+  @keyframes wv {
+    0%,100% { height: 4px; }
+    50%      { height: 22px; }
+  }
+  .mic-status {
+    position: absolute; right: 0; bottom: 0;
+    font-size: 0.64rem; color: #a07840; letter-spacing: 0.06em;
+  }
+
+  /* ── Celebrate ── */
+  .celebrate {
+    display: none; text-align: center;
+    font-family: 'Cinzel', serif; font-size: 1rem;
+    color: #ffcc66; letter-spacing: 0.14em;
+    margin-bottom: 12px;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Log ── */
+  .log-card {
+    background: #2a1200; border: 1px solid #5a3010;
+    border-radius: 12px; width: 100%; max-width: 580px;
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .log-head {
+    background: #3a1800; border-bottom: 1px solid #5a3010;
+    padding: 9px 16px; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  .log-head-title {
+    font-family: 'Cinzel', serif; font-size: 0.78rem;
+    color: #ffcc66; letter-spacing: 0.1em;
+  }
+  .log-head-count { font-size: 0.67rem; color: #a07840; }
+  .log-body {
+    max-height: 260px; overflow-y: auto;
+    padding: 4px 0; scroll-behavior: smooth;
+  }
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: #1a0a00; }
+  .log-body::-webkit-scrollbar-thumb { background: #5a3010; border-radius: 2px; }
+  .log-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 16px; border-bottom: 1px solid #2e1400;
+    animation: slideIn 0.3s ease;
+  }
+  .log-row:last-child { border-bottom: none; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .log-num {
+    font-family: 'Cinzel', serif; font-size: 0.82rem;
+    color: #ff8c00; font-weight: 700; min-width: 38px;
+  }
+  .log-text {
+    font-family: 'Cinzel', serif; font-size: 0.82rem;
+    color: #ffcc66; flex: 1; letter-spacing: 0.04em;
+  }
+  .log-time { font-size: 0.6rem; color: #6a4820; }
+  .log-empty {
+    text-align: center; color: #5a3810;
+    font-size: 0.72rem; padding: 28px 16px; letter-spacing: 0.08em;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; width: 100%; max-width: 580px;
+  }
+  button {
+    font-family: 'DM Mono', monospace; font-size: 0.74rem;
+    font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 11px 22px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s; border: 2px solid transparent;
+  }
+  #micBtn {
+    background: #ffcc66; color: #1a0a00;
+    border-color: #ffcc66; font-weight: 700; font-size: 0.8rem;
+  }
+  #micBtn:hover { background: #ffe080; }
+  #micBtn.active { background: #cc2200; border-color: #cc2200; color: #fff; }
+  .btn-sec { background: transparent; color: #a07840; border-color: #5a3010; }
+  .btn-sec:hover { border-color: #ffcc66; color: #ffcc66; }
+  .btn-reset { background: transparent; color: #884422; border-color: #441800; }
+  .btn-reset:hover { background: #441800; color: #ffaa66; }
+
+  .toast {
+    display: none; background: #2a0800; color: #ffaa88;
+    font-size: 0.72rem; padding: 10px 18px; border-radius: 6px;
+    max-width: 580px; text-align: center; margin-top: 12px;
+    border: 1px solid #882200;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="om-symbol">🕉</div>
+  <h1>CHANTING COUNTER</h1>
+  <div class="subtitle">speak your mantra — every chant is counted &amp; logged</div>
+</div>
+
+<!-- Setup -->
+<div class="setup-box">
+  <div class="setup-row">
+    <span class="setup-label">MANTRA:</span>
+    <input class="setup-input" id="mantraInput" value="om nama shivaya" placeholder="type your mantra..."/>
+    <button class="btn-set" onclick="setMantra()">✓ Set</button>
+  </div>
+  <div class="setup-row">
+    <span class="setup-label">LANGUAGE:</span>
+    <select class="setup-input" id="langSelect" style="font-family:'DM Mono',monospace; font-size:0.78rem;">
+      <option value="en-US">English (US)</option>
+      <option value="en-IN" selected>English (India)</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="te-IN">Telugu</option>
+      <option value="ta-IN">Tamil</option>
+      <option value="kn-IN">Kannada</option>
+      <option value="sa">Sanskrit</option>
+    </select>
+  </div>
+  <div class="setup-row" style="font-size:0.65rem; color:#6a4820; line-height:1.5;">
+    💡 <strong style="color:#a07840;">Tip:</strong> Select the language that matches how you chant. 
+    For "Om Nama Shivaya" try <strong style="color:#ffcc66;">English (India)</strong> or <strong style="color:#ffcc66;">Telugu</strong>.
+    Each time you finish chanting, pause briefly — the mic will count it.
+  </div>
+</div>
+
+<!-- What mic heard -->
+<div class="heard-box" id="heardBox">
+  🎤 Mic will show what it hears here...
+</div>
+
+<!-- Counter -->
+<div class="counter-card">
+  <div class="big-count" id="bigCount">0</div>
+  <div class="count-label">CHANTS COMPLETED</div>
+
+  <div class="target-row">
+    <span class="target-lbl">Target:</span>
+    <input type="number" class="target-num" id="targetInput" value="108" min="1" oninput="updateProgress()"/>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <span class="prog-pct" id="progPct">0%</span>
+  </div>
+
+  <div class="wave-row">
+    <div class="wbar" id="w1"></div><div class="wbar" id="w2"></div>
+    <div class="wbar" id="w3"></div><div class="wbar" id="w4"></div>
+    <div class="wbar" id="w5"></div><div class="wbar" id="w6"></div>
+    <div class="wbar" id="w7"></div>
+    <span class="mic-status" id="micStatus">Ready</span>
+  </div>
+</div>
+
+<div class="celebrate" id="celebrate">🎉 TARGET REACHED — OM SHANTI 🎉</div>
+
+<!-- Log -->
+<div class="log-card">
+  <div class="log-head">
+    <span class="log-head-title">📿 CHANT LOG</span>
+    <span class="log-head-count" id="logCountEl">0 chants</span>
+  </div>
+  <div class="log-body" id="logBody">
+    <div class="log-empty" id="logEmpty">Your chants will appear here...</div>
+  </div>
+</div>
+
+<!-- Buttons -->
+<div class="controls">
+  <button id="micBtn" onclick="toggleListening()">🎙 &nbsp;Start Listening</button>
+  <button class="btn-sec" onclick="saveLog()">💾 &nbsp;Save Log</button>
+  <button class="btn-reset" onclick="resetAll()">↺ &nbsp;Reset</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition  = null;
+let isListening  = false;
+let chantCount   = 0;
+let chantLog     = [];
+let mantraWords  = [];          // array of key words from the mantra
+let rawMantra    = 'om nama shivaya';
+let lastCountTime= 0;
+
+/* ════════════════════════════════
+   ELEMENTS
+════════════════════════════════ */
+const bigCountEl  = document.getElementById('bigCount');
+const logBody     = document.getElementById('logBody');
+const logEmpty    = document.getElementById('logEmpty');
+const logCountEl  = document.getElementById('logCountEl');
+const micStatus   = document.getElementById('micStatus');
+const micBtn      = document.getElementById('micBtn');
+const toast       = document.getElementById('toast');
+const celebrate   = document.getElementById('celebrate');
+const progFill    = document.getElementById('progFill');
+const progPct     = document.getElementById('progPct');
+const heardBox    = document.getElementById('heardBox');
+const waveBars    = [1,2,3,4,5,6,7].map(i => document.getElementById('w'+i));
+
+/* ════════════════════════════════
+   MANTRA SETUP
+════════════════════════════════ */
+function setMantra() {
+  rawMantra   = document.getElementById('mantraInput').value.trim().toLowerCase();
+  // Extract meaningful words (skip very short ones)
+  mantraWords = rawMantra.split(/\s+/).filter(w => w.length >= 2);
+  showToast('✓ Mantra set: "' + rawMantra + '" — ' + mantraWords.length + ' key words to match');
+}
+
+// Init mantra words on load
+setMantra();
+
+/* ════════════════════════════════
+   FUZZY MATCH
+   Returns true if the transcript
+   contains enough mantra words
+════════════════════════════════ */
+function isMantraDetected(transcript) {
+  const t = clean(transcript);
+
+  // --- Strategy 1: direct substring match ---
+  if (t.includes(clean(rawMantra))) return true;
+
+  // --- Strategy 2: match enough key words ---
+  if (mantraWords.length === 0) return false;
+
+  let matched = 0;
+  for (const word of mantraWords) {
+    // check exact word or close sound (removes vowels for consonant skeleton match)
+    if (t.includes(word) || t.includes(skeleton(word))) {
+      matched++;
+    }
+  }
+
+  // Need at least 50% of mantra words to match
+  const ratio = matched / mantraWords.length;
+  return ratio >= 0.5;
+}
+
+// Clean string: lowercase, remove punctuation, collapse spaces
+function clean(str) {
+  return str.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Consonant skeleton: remove vowels for phonetic matching
+function skeleton(word) {
+  return word.replace(/[aeiou]/g, '');
+}
+
+/* ════════════════════════════════
+   COUNT A CHANT
+════════════════════════════════ */
+function addChant(transcript) {
+  chantCount++;
+  const now     = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+  chantLog.push({ serial: chantCount, mantra: rawMantra, time: timeStr });
+
+  // Big number pop
+  bigCountEl.textContent = chantCount;
+  bigCountEl.classList.add('pop');
+  setTimeout(() => bigCountEl.classList.remove('pop'), 250);
+
+  // Append log row
+  logEmpty.style.display = 'none';
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  row.innerHTML =
+    `<span class="log-num">#${chantCount}</span>` +
+    `<span class="log-text">${rawMantra}</span>` +
+    `<span class="log-time">${timeStr}</span>`;
+  logBody.appendChild(row);
+  logBody.scrollTop = logBody.scrollHeight;
+
+  logCountEl.textContent = chantCount + ' chant' + (chantCount !== 1 ? 's' : '');
+  updateProgress();
+
+  micStatus.textContent = '✓ Chant #' + chantCount + ' counted!';
+}
+
+/* ════════════════════════════════
+   PROGRESS
+════════════════════════════════ */
+function updateProgress() {
+  const target = parseInt(document.getElementById('targetInput').value) || 108;
+  const pct    = Math.min(100, Math.round(chantCount / target * 100));
+  progFill.style.width  = pct + '%';
+  progPct.textContent   = pct + '%';
+  celebrate.style.display = chantCount >= target ? 'block' : 'none';
+}
+
+/* ════════════════════════════════
+   WAVE / STATUS
+════════════════════════════════ */
+function setWave(on) {
+  waveBars.forEach(b => on ? b.classList.add('on') : b.classList.remove('on'));
+}
+
+function showToast(msg, dur = 3000) {
+  toast.textContent    = msg;
+  toast.style.display  = 'block';
+  setTimeout(() => toast.style.display = 'none', dur);
+}
+
+/* ════════════════════════════════
+   SPEECH RECOGNITION
+════════════════════════════════ */
+function toggleListening() {
+  if (!SR) {
+    showToast('❌ Please open this in Google Chrome or Microsoft Edge.', 5000);
+    return;
+  }
+  isListening ? stopListening() : startListening();
+}
+
+function startListening() {
+  if (!rawMantra) { showToast('Please set your mantra first!'); return; }
+
+  recognition = new SR();
+  recognition.lang            = document.getElementById('langSelect').value;
+  recognition.continuous      = true;
+  recognition.interimResults  = true;   // show interim so user sees what mic hears
+  recognition.maxAlternatives = 3;      // check multiple alternatives
+
+  recognition.onstart = () => {
+    isListening = true;
+    micBtn.textContent = '⏹  Stop Listening';
+    micBtn.className   = 'active';
+    setWave(true);
+    micStatus.textContent = 'Listening... chant now!';
+    heardBox.innerHTML = '🎤 Listening — chant your mantra...';
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    micBtn.textContent = '🎙 \u00a0Start Listening';
+    micBtn.className   = '';
+    setWave(false);
+    micStatus.textContent = 'Ready';
+    // Auto restart if accidentally stopped
+    // (comment out if you don't want auto-restart)
+    // if (isListening) recognition.start();
+  };
+
+  recognition.onresult = (event) => {
+    let interimTranscript = '';
+    let finalTranscript   = '';
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+
+      // Collect all alternatives for better matching
+      let bestText = '';
+      for (let alt = 0; alt < result.length; alt++) {
+        bestText += ' ' + result[alt].transcript;
+      }
+
+      if (result.isFinal) {
+        finalTranscript += bestText;
+      } else {
+        interimTranscript += bestText;
+      }
+    }
+
+    // Show what mic heard
+    const displayText = (finalTranscript || interimTranscript).trim();
+    heardBox.innerHTML = '🎤 Heard: <span>"' + displayText + '"</span>';
+
+    // Only count on FINAL results
+    if (finalTranscript.trim()) {
+      const now = Date.now();
+      // Debounce: don't count twice within 1.5 seconds
+      if (now - lastCountTime < 1500) return;
+
+      if (isMantraDetected(finalTranscript)) {
+        lastCountTime = now;
+        addChant(finalTranscript);
+      } else {
+        micStatus.textContent = 'Not matched — try again';
+      }
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      // Silently ignore no-speech, mic is still running
+      micStatus.textContent = 'No speech — keep chanting...';
+      return;
+    }
+    const msgs = {
+      'not-allowed'  : '❌ Mic blocked. Click the 🔒 in address bar → Allow Microphone.',
+      'network'      : '⚠ Network error. Check internet connection.',
+      'audio-capture': '❌ No microphone found. Please plug one in.',
+    };
+    showToast(msgs[e.error] || '⚠ Error: ' + e.error, 5000);
+    setWave(false);
+  };
+
+  try {
+    recognition.start();
+  } catch(e) {
+    showToast('Could not start mic: ' + e.message);
+  }
+}
+
+function stopListening() {
+  try { recognition.stop(); } catch(e) {}
+  isListening = false;
+  setWave(false);
+  micBtn.textContent = '🎙 \u00a0Start Listening';
+  micBtn.className   = '';
+  micStatus.textContent = 'Stopped';
+}
+
+/* ════════════════════════════════
+   SAVE / RESET
+════════════════════════════════ */
+function saveLog() {
+  if (!chantLog.length) { showToast('No chants to save yet!'); return; }
+  let txt = '🕉  CHANTING LOG\n';
+  txt += 'Mantra  : ' + rawMantra.toUpperCase() + '\n';
+  txt += 'Total   : ' + chantCount + ' chants\n';
+  txt += '─'.repeat(42) + '\n\n';
+  chantLog.forEach(e => {
+    txt += `#${String(e.serial).padStart(4,'0')}  ${e.mantra}  [${e.time}]\n`;
+  });
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  Object.assign(document.createElement('a'), { href: url, download: 'chanting-log.txt' }).click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Log saved as chanting-log.txt');
+}
+
+function resetAll() {
+  if (chantCount > 0 && !confirm('Reset all ' + chantCount + ' chants?')) return;
+  stopListening();
+  chantCount   = 0;
+  chantLog     = [];
+  lastCountTime= 0;
+  bigCountEl.textContent = '0';
+  logBody.innerHTML = '';
+  logBody.appendChild(logEmpty);
+  logEmpty.style.display = 'block';
+  logCountEl.textContent = '0 chants';
+  celebrate.style.display = 'none';
+  heardBox.innerHTML = '🎤 Mic will show what it hears here...';
+  micStatus.textContent = 'Ready';
+  updateProgress();
+}
+
+updateProgress();
+</script>
+</body>
+</html>
